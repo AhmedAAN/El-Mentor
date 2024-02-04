@@ -9,7 +9,7 @@ import reviewsRouter from "./routes/reviews/reviews";
 import adminRouter from "./routes/admin/admin";
 
 dotenv.config();
-//using routes
+//using routesss
 
 //connecting to database
 connection();
