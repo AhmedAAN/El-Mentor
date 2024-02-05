@@ -1,7 +1,5 @@
 import { Request, Response } from "express";
 import Jwt from "jsonwebtoken";
-import crypto from "crypto";
-import { secretKey } from "../../../config";
 import { collection } from "../../models/connection";
 
 export default async function verifyToken(req: any, res: Response, next: any) {
@@ -24,14 +22,15 @@ export default async function verifyToken(req: any, res: Response, next: any) {
   const users = collection("users");
 
   try {
+    const secretKey = process.env.SECRETKEY || "";
     await Jwt.verify(token, secretKey);
     const found = await accessToken.findOne({ token: token });
     if (!found) {
       return res.status(404).send({ error: "not found" });
     }
-
+    console.log(found);
     const user = await users.findOne({ _id: found.id });
-    req.user = user;//
+    req.user = user; //
   } catch (err) {
     res.status(500).send({ error: "Error verifying token" });
   }

@@ -7,8 +7,8 @@ export default async function logout(request: Request, response: Response) {
   const accessTokenCollection = collection("accessToken");
   const requestHandeler = handle(request);
   const id = requestHandeler.input("id");
-  const userId = (request as any).user._id;
-
+  const userId = (request as any).user;
+console.log(userId)
   if (userId.toString() == id) {
     try {
       await accessTokenCollection.deleteMany({ _id: new ObjectId(id) });
