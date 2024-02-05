@@ -7,7 +7,7 @@ export default async function logout(request: Request, response: Response) {
   const accessTokenCollection = collection("accessToken");
   const requestHandeler = handle(request);
   const id = requestHandeler.input("id");
-  const userId = (request as any).user;
+  const userId = (request as any).user._id;
 
   if (userId.toString() == id) {
     try {
