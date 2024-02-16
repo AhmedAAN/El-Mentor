@@ -29,7 +29,7 @@ export default async function login(request: any, reply: Response) {
     userName: user.userName,
     email: user.email,
   };
-  const token = await newAccessToken({ email }, secretKey, {
+  const token = await newAccessToken({ _id: user._id }, secretKey, {
     expiresIn: "10d",
     algorithm: "HS256",
   });
@@ -40,9 +40,9 @@ export default async function login(request: any, reply: Response) {
   if (passCompare) {
     await accessToken.insertOne({ id: user._id, token: token });
     delete user.password;
+    reply.cookie("Authorization", token, { maxAge: 1000 * 60 * 60 * 24 * 5 }); //five days
     reply.status(200).send({
       user: finalUser,
-      accessToken: token,
     });
   } else {
     return reply.status(500).send("failed login");

@@ -5,6 +5,7 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import fileUpload from "express-fileupload";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
 dotenv.config();
 const app = express();
 //using cors to access resources of the browser
@@ -12,7 +13,8 @@ app.use(cors());
 //for uploading images
 app.use(fileUpload());
 const myPath = path.join(process.cwd() + "/storage/uploads"); //D:\graduation project\elmentor/storage/uploads
-
+//using cookie parser for token
+app.use(cookieParser());
 //taking data from frontend
 app.use(bodyParser.json());
 app.use(express.json());
