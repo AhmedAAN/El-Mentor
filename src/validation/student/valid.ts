@@ -13,6 +13,7 @@ export default async function valid(request: any) {
   const email = requestHandeler.input("email");
   const password = requestHandeler.input("password");
   const confirmPassword = requestHandeler.input("confirmPassword");
+  const specialization = requestHandeler.input("specialization");
   const findEmail = await studentsCollection.findOne({ email: email });
   const validRegex =
     /^[a-zA-Z0-9.!#$%^&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9]+)*$/;
@@ -40,7 +41,7 @@ export default async function valid(request: any) {
     baseName = null;
     myPath = null;
   }
-  console.log(baseName)
+  console.log(baseName);
 
   if (!email.match(validRegex)) {
     return "Please enter a valid email";
@@ -57,6 +58,7 @@ export default async function valid(request: any) {
       imageName: baseName,
       password: finalPass,
       student: true,
+      specialization,
     });
     return true;
   }

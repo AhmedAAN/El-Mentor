@@ -13,12 +13,12 @@ export default async function validation(requestHandeler: any, request: any) {
   const confirmPassword = requestHandeler.input("confirmPassword");
   let image: any = request?.files?.image?.data;
   const description: string = requestHandeler.input("description");
-  const services = requestHandeler.input("services");
-  const specialization = requestHandeler.input("specialization");
-  const techStack = requestHandeler.input("techStack");
-  const lvlOfExperience = requestHandeler.input("experience");
-  const title = requestHandeler.input("title");
-  const linkedIn = requestHandeler.input("linkedin");
+  const services: string = requestHandeler.input("services");
+  const specialization: string = requestHandeler.input("specialization");
+  const techStack: any[] = requestHandeler.input("techStack");
+  const lvlOfExperience: string = requestHandeler.input("experience");
+  const title: string = requestHandeler.input("title");
+  const linkedIn: string = requestHandeler.input("linkedin");
   const findEmail = await mentorsCollection.findOne({ email: email });
   const validRegex =
     /^[a-zA-Z0-9.!#$%^&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9]+)*$/;
@@ -62,7 +62,7 @@ export default async function validation(requestHandeler: any, request: any) {
   } else {
     const finalPass = await hash(password);
 
-    console.log(image)
+    console.log(image);
 
     await mentorsCollection.insertOne({
       userName,
