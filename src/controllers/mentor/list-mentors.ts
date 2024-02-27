@@ -9,7 +9,7 @@ export async function listMentors(request: Request, response: Response) {
   const mentorsCollection = collection("users");
   try {
     const page = +requestHandeler.input("page") || 1;
-    const limit = 10;
+    const limit = 8;
     const skip = (page - 1) * limit;
     const mentors = await mentorsCollection
       .find({ mentor: true }, { projection: { password: false } })

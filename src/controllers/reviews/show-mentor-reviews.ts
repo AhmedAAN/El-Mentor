@@ -9,7 +9,7 @@ export default async function showMentorsReviews(
   const requestHandler = handle(request);
   const mentorId = requestHandler.input("mentorId");
   const reviewsCollection = collection("reviews");
-  const limit = 10;
+  const limit = 8;
   const page = +requestHandler.input("page") || 1;
   const skip = (page - 1) * limit;
   try {
