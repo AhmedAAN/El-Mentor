@@ -6,7 +6,7 @@ import { ObjectId } from "mongodb";
 export async function updateMentor(request: Request, response: Response) {
   const requestHandeler = handle(request);
   const mentorCollection = collection("users");
-  const mentorId = requestHandeler.input("id");
+  const mentorId = (request as any).user._id
   try {
     const updatedMentor = await mentorCollection.updateOne(
       {

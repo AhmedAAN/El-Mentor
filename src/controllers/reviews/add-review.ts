@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import handle from "../../core/request-class";
 import { collection } from "../../models/connection";
+import { ObjectId } from "mongodb";
 
 export default async function addReview(request: any, response: Response) {
   const requestHandler = handle(request);
@@ -10,11 +11,11 @@ export default async function addReview(request: any, response: Response) {
   const service = requestHandler.input("service");
   const reviewsCollection = collection("reviews");
   const reviewerId = request.user._id;
-  console.log(request.user)
+  console.log(request.user);
   try {
     await reviewsCollection.insertOne({
-      mentorId,
-      stars:numOfStars,
+      mentorId: new ObjectId(mentorId),
+      stars: numOfStars,
       comment,
       reviewerId,
       service,

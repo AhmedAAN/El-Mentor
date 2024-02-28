@@ -12,16 +12,16 @@ const router = express.Router();
 
 router.get("/listStudents", [verifyToken], listStudents);
 router.get("/listStudent/:id", listStudent);
-router.post("/student/signup", addStudent);
+router.post("/student/signup", addStudent);//
 router.delete(
-  "/removeStudent/:id",
+  "/removeStudent",
   [verifyToken],
   deleteStudent
-); //i put only important middlewares and others are made but in there folders.
+); //i put only important middlewares and others are made but in there folders.//
 router.patch(
-  "/updateStudent/:id",
+  "/updateStudent",
   [verifyToken],
   updateStudent
-); //i put only important middlewares and others are made but in there folders
+); //i put only important middlewares and others are made but in there folders//
 
 export default router;

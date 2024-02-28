@@ -1,6 +1,11 @@
 import { Request, Response } from "express";
 import handle from "../../core/request-class";
 import { collection } from "../../models/connection";
+import {
+  averageStars,
+  lookupReviews,
+  projection,
+} from "../../helper/mentors/listing";
 
 export default async function consultation(
   request: Request,
@@ -24,9 +29,34 @@ export default async function consultation(
   filter["mentor"] = true;
   console.log(filter);
   try {
-    const mentors = await mentorsCollection.find(filter).limit(limit).skip(skip).toArray();
+    const mentors = await mentorsCollection
+      .aggregate([
+        {
+          $match: filter,
+        },
+        lookupReviews,
+        averageStars,
+        projection,
+      ])
+      .toArray();
+    const mentorsData = await mentorsCollection.aggregate([
+      {
+        $match: filter,
+      },
+      lookupReviews,
+      averageStars,
+      projection,
+      {
+        $skip: skip,
+      },
+      {
+        $limit: limit,
+      },
+    ]).toArray();
     const numberOfPages: number = Math.ceil(mentors.length / limit);
-    response.status(200).send({mentors, page, limit, numberOfPages, total: mentors.length });
+    response
+      .status(200)
+      .send({ mentorsData, page, limit, numberOfPages, total: mentors.length });
   } catch (err) {
     response.status(500).send({ msg: err });
   }

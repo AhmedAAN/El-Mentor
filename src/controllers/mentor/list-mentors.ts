@@ -3,6 +3,12 @@ import { collection } from "../../models/connection";
 import handle from "../../core/request-class";
 import { ObjectId } from "mongodb";
 import { skip } from "node:test";
+import {
+  averageStars,
+  lookupReviews,
+  matchMentors,
+  projection,
+} from "../../helper/mentors/listing";
 
 export async function listMentors(request: Request, response: Response) {
   const requestHandeler = handle(request);
@@ -12,14 +18,28 @@ export async function listMentors(request: Request, response: Response) {
     const limit = 8;
     const skip = (page - 1) * limit;
     const mentors = await mentorsCollection
-      .find({ mentor: true }, { projection: { password: false } })
-      .limit(limit)
-      .skip(skip)
+      .aggregate([matchMentors, lookupReviews, averageStars, projection])
       .toArray();
+    const mentorsData = await mentorsCollection
+      .aggregate([
+        matchMentors,
+        lookupReviews,
+        averageStars,
+        projection,
+        {
+          $skip: skip,
+        },
+        {
+          $limit: limit,
+        },
+      ])
+      .toArray();
+    const totalMentors = mentors.length;
     const numberOfPages: number = Math.ceil(mentors.length / limit);
     response
       .status(200)
-      .send({ mentors, page, limit, numberOfPages, total: mentors.length });
+      .send({ mentorsData, page, limit, numberOfPages, totalMentors });
+      
   } catch (err) {
     console.log("Error from list-mentors controller");
     response.status(500).send("Error getting mentors");

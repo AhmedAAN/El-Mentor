@@ -9,18 +9,18 @@ import verifyAdminOrMentor from "../../validation/mentor/mentor-or-admin";
 //router use
 const router = express.Router();
 //routes
-router.get("/listMentors", listMentors);
-router.get("/listMentor/:id", listMentor);
-router.post("/mentor/signup", addMentor);
+router.get("/listMentors", listMentors);//
+router.get("/listMentor/:id", listMentor);//
+router.post("/mentor/signup", addMentor);//
 router.delete(
-  "/deleteMentor/:id",
+  "/deleteMentor",
   [verifyToken],
   deleteMentor
-);
+);//
 router.patch(
-  "/updateMentor/:id",
+  "/updateMentor",
   [verifyToken],
   updateMentor
-);
+);//
 
 export default router;

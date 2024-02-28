@@ -6,7 +6,7 @@ import { ObjectId } from "mongodb";
 export async function deleteMentor(request: Request, response: Response) {
   const requestHandeler = handle(request);
   const mentorCollection = collection("users");
-  const mentorId = requestHandeler.input("id");
+  const mentorId = (request as any).user._id
   try {
     const deletedMentor = await mentorCollection.deleteOne({
       _id: new ObjectId(mentorId),

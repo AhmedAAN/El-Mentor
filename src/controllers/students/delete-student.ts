@@ -6,7 +6,7 @@ import { ObjectId } from "mongodb";
 export async function deleteStudent(request: Request, response: Response) {
   const requestHandeler = handle(request);
   const studentsCollection = collection("users");
-  const mentorId = requestHandeler.input("id");
+  const mentorId = (request as any).user._id
   try {
     const deletedStudent = await studentsCollection.deleteOne({
       _id: new ObjectId(mentorId),
