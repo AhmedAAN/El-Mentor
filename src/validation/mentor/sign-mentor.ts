@@ -28,6 +28,7 @@ export default async function validation(requestHandeler: any, request: any) {
   );
   //console.log("myPath from validation ="+myPath);
   //console.log("dirName from validation ="+__dirname);
+  console.log(image)
   let baseName: any = path.basename(myPath);
   let imageUrl: any = urlImage(baseName);
   if (image) {
@@ -49,15 +50,15 @@ export default async function validation(requestHandeler: any, request: any) {
     return "Email already exists";
   } else if (password !== confirmPassword && password.length < 8) {
     return "Password is incorrect";
-  } else if (description.length == 0) {
+  } else if (!description) {
     return "description is required";
-  } else if (services.length == 0) {
+  } else if (!services) {
     return " services is required";
-  } else if (specialization.length == 0) {
+  } else if (!specialization ) {
     return " specialization is required";
-  } else if (lvlOfExperience.length == 0) {
+  } else if (!lvlOfExperience) {
     return " level of experience is required";
-  } else if (linkedIn.length == 0) {
+  } else if (!linkedIn) {
     return "linkedin is required";
   } else {
     const finalPass = await hash(password);

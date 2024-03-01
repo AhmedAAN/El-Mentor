@@ -5,14 +5,11 @@ import { ObjectId } from "mongodb";
 
 export default async function logout(request: Request, response: Response) {
   const accessTokenCollection = collection("accessToken");
-  const requestHandeler = handle(request);
-  const id = requestHandeler.input("id");
   const userId = (request as any).user._id;
-console.log(userId)
-console.log(userId.toString() === id)
-  if (userId.toString() === id) {
+  console.log(userId)
+  if (userId.toString() === userId) {
     try {
-      await accessTokenCollection.deleteMany({ _id: new ObjectId(id) });
+      await accessTokenCollection.deleteMany({ _id: new ObjectId(userId) });
       return response.status(200).send({ msg: "success" });
     } catch (err) {
       console.log("error from logout controller " + err);
