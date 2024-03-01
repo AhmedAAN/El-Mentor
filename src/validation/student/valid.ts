@@ -42,13 +42,18 @@ export default async function valid(request: any) {
     myPath = null;
   }
   console.log(baseName);
-console.log(confirmPassword)
+  console.log(confirmPassword);
   if (!email.match(validRegex)) {
     return "Please enter a valid email";
-  }  if (findEmail) {
+  }
+  if (findEmail) {
     return "Email already exists";
-  }  if (password !== confirmPassword || password.length < 8) {
+  }
+  if (password !== confirmPassword || password.length < 8) {
     return "Password is incorrect";
+  }
+  if (!specialization) {
+    return "specialization is required";
   } else {
     const finalPass = await hash(password);
     await studentsCollection.insertOne({
