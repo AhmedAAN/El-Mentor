@@ -6,14 +6,14 @@ import { ObjectId } from "mongodb";
 export async function deleteMentor(request: Request, response: Response) {
   const requestHandeler = handle(request);
   const mentorCollection = collection("users");
-  const mentorId = (request as any).user._id
+  const userId = (request as any).user._id;
   try {
-    const deletedMentor = await mentorCollection.deleteOne({
-      _id: new ObjectId(mentorId),
+    const deletedUser = await mentorCollection.deleteOne({
+      _id: new ObjectId(userId),
     });
-    response.status(200).send({ deletedMentor });
+    response.status(200).send(deletedUser);
   } catch (err) {
     console.log("Error from delete-mentor controller");
-    response.status(500).send("Error deleting mentor");
+    response.status(500).send({ msg: "Error deleting user" });
   }
 }

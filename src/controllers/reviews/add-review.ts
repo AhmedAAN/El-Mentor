@@ -12,6 +12,9 @@ export default async function addReview(request: any, response: Response) {
   const reviewsCollection = collection("reviews");
   const reviewerId = request.user._id;
   console.log(request.user);
+  if (numOfStars > 5 || numOfStars < 0) {
+    return response.send({ msg: "Invalid number of stars" });
+  }
   try {
     await reviewsCollection.insertOne({
       mentorId: new ObjectId(mentorId),

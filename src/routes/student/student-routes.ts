@@ -13,7 +13,7 @@ const router = express.Router();
 router.get("/listStudents", [verifyToken], listStudents);
 router.get("/listStudent/:id", listStudent);
 router.post("/student/signup", addStudent);//
-router.delete(
+/*router.delete(
   "/removeStudent",
   [verifyToken],
   deleteStudent
@@ -23,5 +23,5 @@ router.patch(
   [verifyToken],
   updateStudent
 ); //i put only important middlewares and others are made but in there folders//
-
+*/
 export default router;

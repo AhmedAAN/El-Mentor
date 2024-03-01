@@ -13,12 +13,12 @@ router.get("/listMentors", listMentors);//
 router.get("/listMentor/:id", listMentor);//
 router.post("/mentor/signup", addMentor);//
 router.delete(
-  "/deleteMentor",
+  "/deleteUser",
   [verifyToken],
   deleteMentor
 );//
 router.patch(
-  "/updateMentor",
+  "/updateUser",
   [verifyToken],
   updateMentor
 );//

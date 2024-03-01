@@ -6,17 +6,17 @@ import { ObjectId } from "mongodb";
 export async function updateMentor(request: Request, response: Response) {
   const requestHandeler = handle(request);
   const mentorCollection = collection("users");
-  const mentorId = (request as any).user._id
+  const userId = (request as any).user._id;
   try {
-    const updatedMentor = await mentorCollection.updateOne(
+    const updatedUser = await mentorCollection.updateOne(
       {
-        _id: new ObjectId(mentorId),
+        _id: new ObjectId(userId),
       },
       { $set: request.body }
     );
-    response.status(200).send({ updatedMentor });
+    response.status(200).send(updatedUser);
   } catch (err) {
     console.log("Error from update-mentor controller");
-    response.status(500).send("Error updating mentor");
+    response.status(500).send({ msg: "Error updating user" });
   }
 }
