@@ -41,7 +41,7 @@ app.use(express.urlencoded());
 //listening on port 4000
 const port: number = Number(process.env.PORT) || 3000;
 //console.log("port = "+port)
-httpServer.listen(port,"0.0.0.0", () => {
+httpServer.listen(port, () => {
   console.log("listening on port " + port);
 });
 
