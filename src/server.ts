@@ -20,7 +20,7 @@ const io = new Server(httpServer, {
   }
 });
 
-
+const handler = socketHandler(io);
 //using cors to access resources of the browser
 app.use(cors({
   origin: true, // Allow requests from this origin
