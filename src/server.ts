@@ -14,22 +14,18 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://127.0.0.1:5500", // Allow requests from this origin
-    methods: ["GET", "POST", "DELETE"] // Allow these HTTP methods
+    origin: true, // Allow requests from this origin
+    methods: ["GET", "POST", "DELETE"], // Allow these HTTP methods
+    credentials: true 
   }
 });
-const handler = socketHandler(io);
-
-setTimeout(() => {
-  handler.notify( 'Welcome to the chat!')
-  
-}, 20000);
 
 
 //using cors to access resources of the browser
 app.use(cors({
-  origin: 'http://127.0.0.1:5500', // Allow requests from this origin
-  methods: ['GET', 'POST', 'DELETE'] // Allow these HTTP methods
+  origin: true, // Allow requests from this origin
+  methods: ['GET', 'POST', 'DELETE'], // Allow these HTTP methods
+  credentials: true
 }));
 //for uploading images
 app.use(fileUpload());
@@ -45,7 +41,7 @@ app.use(express.urlencoded());
 //listening on port 4000
 const port: number = Number(process.env.PORT) || 3000;
 //console.log("port = "+port)
-httpServer.listen(port, () => {
+httpServer.listen(port,"0.0.0.0", () => {
   console.log("listening on port " + port);
 });
 

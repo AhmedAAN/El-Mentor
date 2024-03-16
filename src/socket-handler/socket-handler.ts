@@ -34,6 +34,7 @@ export default function socketHandler(io: Server) {
     return (roomID)
   }
   io.on('connection', (socket: Socket) => {
+    console.log(socket.handshake.headers)
     const userID = socket.handshake.query.userId?.toString();
     if(userID){
       connectedUsers[userID] = socket.id
