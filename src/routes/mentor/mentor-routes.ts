@@ -6,6 +6,8 @@ import { listMentor } from "../../controllers/mentor/list-mentor";
 import { listMentors } from "../../controllers/mentor/list-mentors";
 import verifyToken from "../../validation/users/compare-token";
 import verifyAdminOrMentor from "../../validation/mentor/mentor-or-admin";
+import  updateUser  from "../../controllers/mentor/updateUser";
+
 //router use
 const router = express.Router();
 //routes
@@ -22,5 +24,5 @@ router.patch(
   [verifyToken],
   updateMentor
 );//
-
+router.patch("/updateOne",[verifyToken],updateUser)//<<
 export default router;

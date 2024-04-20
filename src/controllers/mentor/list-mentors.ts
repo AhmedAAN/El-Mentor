@@ -15,6 +15,16 @@ export async function listMentors(request: Request, response: Response) {
   const mentorsCollection = collection("users");
   try {
     const page = +requestHandeler.input("page") || 1;
+    const levelOfExperience = requestHandeler.input("levelOfExperience");
+    const specialization = requestHandeler.input("specialization");
+    const matchFilter: any = {};
+    if (levelOfExperience) {
+      matchFilter.levelOfExperience = levelOfExperience;
+    }
+    if (specialization) {
+      matchFilter.specialization = specialization;
+    }
+    matchFilter.mentor = true;
     const limit = 8;
     const skip = (page - 1) * limit;
     const mentors = await mentorsCollection
@@ -22,7 +32,7 @@ export async function listMentors(request: Request, response: Response) {
       .toArray();
     const mentorsData = await mentorsCollection
       .aggregate([
-        matchMentors,
+        matchMentors(matchFilter),
         lookupReviews,
         averageStars,
         projection,
@@ -39,7 +49,6 @@ export async function listMentors(request: Request, response: Response) {
     response
       .status(200)
       .send({ mentorsData, page, limit, numberOfPages, totalMentors });
-      
   } catch (err) {
     console.log("Error from list-mentors controller");
     response.status(500).send("Error getting mentors");

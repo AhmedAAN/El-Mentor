@@ -1,8 +1,8 @@
-export const matchMentors = {
-  $match: {
-    mentor: true,
-  },
-};
+export function matchMentors(matchFilter: any) {
+  return {
+    $match: matchFilter,
+  };
+}
 export const lookupReviews = {
   $lookup: {
     from: "reviews",
@@ -24,6 +24,6 @@ export const projection = {
     imageUrl: 1,
     averageStars: { $ifNull: ["$averageStars", 0] },
     specialization: 1,
-    levelOfExperience: 1
+    levelOfExperience: 1,
   },
 };
