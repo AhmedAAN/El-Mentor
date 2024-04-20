@@ -59,8 +59,8 @@ export default async function valid(request: any) {
     await studentsCollection.insertOne({
       userName,
       email,
-      imageLink: imageUrl,
-      imageName: baseName,
+      imageUrl: imageUrl,
+      baseName,
       password: finalPass,
       student: true,
       specialization,

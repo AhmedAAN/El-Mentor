@@ -69,7 +69,7 @@ export default async function validation(requestHandeler: any, request: any) {
       userName,
       email,
       password: finalPass,
-      image: baseName,
+      baseName,
       imageUrl: imageUrl,
       description,
       services,
