@@ -6,6 +6,8 @@ import fs from "fs";
 
 export default async function validation(requestHandeler: any, request: any) {
   const mentorsCollection = collection("users");
+  const UserChats = collection("UserChats");
+  const Notifications = collection("Notifications");
 
   const userName = requestHandeler.input("userName");
   const email = requestHandeler.input("email");
@@ -65,7 +67,7 @@ export default async function validation(requestHandeler: any, request: any) {
 
     console.log(image);
 
-    await mentorsCollection.insertOne({
+    var result = await mentorsCollection.insertOne({
       userName,
       email,
       password: finalPass,
@@ -79,6 +81,15 @@ export default async function validation(requestHandeler: any, request: any) {
       professionalTitle: title,
       linkedin: linkedIn,
       mentor: true,
+    });
+    await UserChats.insertOne({
+      userID: result.insertedId,
+      chats: []
+    });
+    await Notifications.insertOne({
+      receiverId: result.insertedId,
+      old: [],
+      new: []
     });
     return true;
   }

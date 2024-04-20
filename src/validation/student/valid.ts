@@ -7,6 +7,8 @@ import handle from "../../core/request-class";
 
 export default async function valid(request: any) {
   const studentsCollection = collection("users");
+  const UserChats = collection("UserChats");
+  const Notifications = collection("Notifications");
   const requestHandeler = handle(request);
 
   const userName = requestHandeler.input("userName");
@@ -56,7 +58,7 @@ export default async function valid(request: any) {
     return "specialization is required";
   } else {
     const finalPass = await hash(password);
-    await studentsCollection.insertOne({
+    var result = await studentsCollection.insertOne({
       userName,
       email,
       imageUrl: imageUrl,
@@ -64,6 +66,15 @@ export default async function valid(request: any) {
       password: finalPass,
       student: true,
       specialization,
+    });
+    await UserChats.insertOne({
+      userID: result.insertedId,
+      chats: []
+    });
+    await Notifications.insertOne({
+      receiverId: result.insertedId,
+      old: [],
+      new: []
     });
     return true;
   }

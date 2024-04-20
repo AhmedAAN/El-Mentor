@@ -2,11 +2,14 @@ import { Server, Socket } from 'socket.io';
 import { collection } from "../models/connection";
 import { ObjectId } from "mongodb";
 import { emit } from 'node:process';
+import Jwt from "jsonwebtoken";
+var cookie = require("cookie")
 
 
 const Chats = collection("Chats");
 const Users = collection("users");
 const UserChats = collection("UserChats");
+const Notifications = collection("Notifications");
 
 type ConnectedUsers = {
     [userID: string]: string;
@@ -17,8 +20,44 @@ const connectedUsers: ConnectedUsers = {};
 
 export default function socketHandler(io: Server) {
 
-  function notify(message:string) {
-    io.emit('notification', message);
+  async function notify(message:string, ID: any) {
+    const receiverId = new ObjectId(ID)
+    const receiverSocketId = connectedUsers[receiverId.toString()]
+
+    const socket = io.sockets.sockets.get(receiverSocketId)
+
+    try{
+      const notifications = await Notifications.findOne({ receiverId: receiverId });
+      if (!notifications) {
+        throw new Error('Notifications not found');
+      };
+      const notification = {
+        message: message,
+        time: new Date()
+      }
+
+      if (socket) {
+        await Notifications.updateOne(
+          { receiverId: receiverId },
+          {
+            $push: { old: notification }
+          }
+        );
+        socket.emit('notification', message);
+      } else {
+        await Notifications.updateOne(
+          { receiverId: receiverId },
+          {
+            $push: { new: notification }
+          }
+        );
+      }
+    }
+    catch(err){
+      console.log(err);
+    }
+
+    
   }
   function createRoom() {
     do {
@@ -33,9 +72,67 @@ export default function socketHandler(io: Server) {
     while (room);
     return (roomID)
   }
+  async function createChat(ID1: any, ID2: any) {
+    try{
+      const receiver = await Users.findOne({ _id: new ObjectId(ID1) })
+      const sender = await Users.findOne({ _id: new ObjectId(ID2) })
+
+      if (!receiver || !sender) {
+        throw new Error('Receiver or sender not found');
+      }
+      var result = await Chats.insertOne({
+        users: [
+          { user: receiver._id, userName: receiver.userName },
+          { user: sender._id, userName: sender.userName }
+        ],
+        messages: [],
+        lastMessage: {receiver: receiver._id, text: `${sender.userName} created a new chat`},
+        lastUsage: new Date()
+      });
+
+      const chat = await Chats.findOne({ _id: result.insertedId })
+
+      if (!chat) {
+        throw new Error('Chat not found');
+      }
+
+      const update: any = {
+        $push: {
+          chats: { chatID: chat?._id }
+         }
+      };
+
+      await UserChats.findOneAndUpdate({ userID: sender?._id }, update);
+      await UserChats.findOneAndUpdate({ userID: receiver?._id }, update);
+
+      const receiverSocketId = connectedUsers[(receiver._id).toString()];
+      const senderSocketId = connectedUsers[(sender._id).toString()];
+
+      const receiverSocket= io.sockets.sockets.get(receiverSocketId)
+      const senderSocket= io.sockets.sockets.get(senderSocketId)
+
+      if (receiverSocket) {
+        receiverSocket.emit('chat created', {chat: chat});
+      }
+      if (senderSocket) {
+        senderSocket.emit('chat created', {chat: chat});
+      }
+      return(0)
+    }
+    catch(err){
+      return(err);
+    }
+  };
   io.on('connection', (socket: Socket) => {
-    console.log(socket.handshake.headers)
-    const userID = socket.handshake.query.userId?.toString();
+    const cookies: string = socket.handshake.headers.cookie || "";
+    const jwt = cookie.parse(cookies).Authorization;
+    const secretKey = process.env.SECRETKEY || "";
+    const ID = Jwt.verify(jwt, secretKey);
+    if(typeof(ID)!='string' ){
+      var userID = ID._id
+    }
+
+  
     if(userID){
       connectedUsers[userID] = socket.id
       socket.broadcast.emit("online", {userID: userID})
@@ -78,54 +175,6 @@ export default function socketHandler(io: Server) {
         socket.emit("get chats", {error: err})
       }
     })
-
-    // Create chats
-    socket.on('create chat', async (ID: any) => {
-      try{
-        const receiver = await Users.findOne({ _id: new ObjectId(ID.ID) })
-        const sender = await Users.findOne({ _id: new ObjectId(userID) })
-
-        if (!receiver || !sender) {
-          throw new Error('Receiver or sender not found');
-        }
-        var result = await Chats.insertOne({
-          users: [
-            { user: receiver._id, userName: receiver.userName },
-            { user: sender._id, userName: sender.userName }
-          ],
-          messages: [],
-          lastMessage: {receiver: receiver._id, text: `${sender.userName} created a new chat`},
-          lastUsage: new Date()
-        });
-
-        const chat = await Chats.findOne({ _id: result.insertedId })
-
-        if (!chat) {
-          throw new Error('Chat not found');
-        }
-
-        const update: any = {
-          $push: {
-            chats: { chatID: chat?._id }
-           }
-        };
-  
-        await UserChats.findOneAndUpdate({ userID: sender?._id }, update);
-        await UserChats.findOneAndUpdate({ userID: receiver?._id }, update);
-
-        const receiverSocketId = connectedUsers[(receiver._id).toString()];
-
-        if (receiverSocketId) {
-          io.to(receiverSocketId).emit('create chat', {chat: chat});
-        }
-
-        socket.emit('create chat', {chat: chat})
-      }
-      catch(err){
-        socket.emit('create chat', {error: `chat not created: ${err}`})
-      }
-
-    });
 
     // Listen for chat messages
     socket.on('message', async ({chatID, msg}) => {
@@ -300,10 +349,12 @@ export default function socketHandler(io: Server) {
     });
 
     // Handle rooms
+    /*
     socket.on('create room', ()=> {
       const roomID = createRoom()
       socket.emit('create room', {roomID});
     })
+    */
 
     socket.on('join room', ({roomID}) => {
       socket.join(roomID);
@@ -345,6 +396,8 @@ export default function socketHandler(io: Server) {
     });
   });
   return {
-    notify
+    notify,
+    createRoom,
+    createChat
   };
 };
