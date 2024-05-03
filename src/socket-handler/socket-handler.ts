@@ -163,6 +163,7 @@ export default function socketHandler(io: Server) {
           .toArray();
 
         socket.emit('get chats', {chats});
+        console.log(chats)
         for (const chat of chats) {
           const chatID = chat._id;
           const ID = new ObjectId(userID);
