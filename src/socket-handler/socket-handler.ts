@@ -34,7 +34,7 @@ export default function socketHandler(io: Server) {
       const notification = {
         message: message,
         time: new Date()
-        
+
       }
 
       if (socket) {
@@ -131,6 +131,7 @@ export default function socketHandler(io: Server) {
     const ID = Jwt.verify(jwt, secretKey);
     if(typeof(ID)!='string' ){
       var userID = ID._id
+      
     }
 
   
