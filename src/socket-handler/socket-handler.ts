@@ -149,6 +149,8 @@ export default function socketHandler(io: Server) {
         const skip = (page.page - 1) * limit;
 
         const userchats = await UserChats.findOne({ userID: new ObjectId(userID) })
+        console.log(userchats)
+        console.log(userID)
 
         if (!userchats) {
           throw new Error('No user chats found');
