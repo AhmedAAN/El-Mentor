@@ -175,6 +175,7 @@ export default function socketHandler(io: Server) {
         }
       }
       catch (err) {
+        console.log(err)
         socket.emit("get chats", {error: err})
       }
     })
