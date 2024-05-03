@@ -14,7 +14,7 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: ['http://127.0.0.1:5500', "http://localhost:5500"], // Allow requests from this origin
+    origin: "http://localhost:5500", // Allow requests from this origin
     methods: ["GET", "POST", "DELETE"], // Allow these HTTP methods
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true 
@@ -25,7 +25,7 @@ const io = new Server(httpServer, {
 var handler = socketHandler(io);
 //using cors to access resources of the browser
 app.use(cors({
-  origin: ['http://127.0.0.1:5500', "http://localhost:5500"], // Allow requests from this origin
+  origin: "http://localhost:5500", // Allow requests from this origin
   methods: ['GET', 'POST', 'DELETE'], // Allow these HTTP methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Include other headers if needed
   credentials: true
