@@ -74,6 +74,7 @@ export default function socketHandler(io: Server) {
     return (roomID)
   }
   async function createChat(ID1: any, ID2: any) {
+    
     try{
       const receiver = await Users.findOne({ _id: new ObjectId(ID1) })
       const sender = await Users.findOne({ _id: new ObjectId(ID2) })
