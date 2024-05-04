@@ -74,7 +74,7 @@ export default function socketHandler(io: Server) {
     return (roomID)
   }
   async function createChat(ID1: any, ID2: any) {
-    
+
     try{
       const receiver = await Users.findOne({ _id: new ObjectId(ID1) })
       const sender = await Users.findOne({ _id: new ObjectId(ID2) })
@@ -126,6 +126,7 @@ export default function socketHandler(io: Server) {
     }
   };
   io.on('connection', (socket: Socket) => {
+  try{
     const cookies: string = socket.handshake.headers.cookie || "";
     const jwt = cookie.parse(cookies).Authorization;
     const secretKey = process.env.SECRETKEY || "";
@@ -422,6 +423,11 @@ export default function socketHandler(io: Server) {
         console.log(connectedUsers)
       }
     });
+    }
+    catch (err: any) {
+        console.log(err);
+        socket.emit("connection", {error: err.message});
+      }
   });
   return {
     notify,
