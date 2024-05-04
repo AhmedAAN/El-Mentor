@@ -113,10 +113,10 @@ export default function socketHandler(io: Server) {
       const senderSocket= io.sockets.sockets.get(senderSocketId)
 
       if (receiverSocket) {
-        receiverSocket.emit('chat created', {chat: chat});
+        receiverSocket.emit('chat created', chat);
       }
       if (senderSocket) {
-        senderSocket.emit('chat created', {chat: chat});
+        senderSocket.emit('chat created', chat);
       }
       return(0)
     }
@@ -143,10 +143,10 @@ export default function socketHandler(io: Server) {
     }
 
     // Get chats
-    socket.on('get chats', async (page: any) => {
+    socket.on('get chats', async (page: any, callback) => {
       try{
         const limit = 20;
-        const skip = (page.page - 1) * limit;
+        const skip = (page - 1) * limit;
 
         const userchats = await UserChats.findOne({ userID: new ObjectId(userID) })
         console.log(userchats)
@@ -164,7 +164,7 @@ export default function socketHandler(io: Server) {
           .skip(skip)
           .toArray();
 
-        socket.emit('get chats', {chats});
+          callback(chats);
         console.log(chats)
         for (const chat of chats) {
           const chatID = chat._id;
@@ -176,9 +176,9 @@ export default function socketHandler(io: Server) {
           );
         }
       }
-      catch (err) {
-        console.log(err)
-        socket.emit("get chats", {error: err})
+      catch (err: any) {
+        console.log(err);
+        callback({error: err.message});
       }
     })
 
@@ -260,7 +260,7 @@ export default function socketHandler(io: Server) {
     });
 
     // Get Messages
-    socket.on('get messages', async ({chatID, page, newMessages}) => {
+    socket.on('get messages', async (chatID, page, newMessages, callback) => {
       try {
         const limit = 20;
         const skip = ((page - 1) * limit) + newMessages;
@@ -276,7 +276,7 @@ export default function socketHandler(io: Server) {
         .toArray();
         const packet = messages.map(({ messages }) => messages)
     
-        socket.emit('get messages', {messages: packet});
+        callback(packet);
           const ID = new ObjectId(userID);
           await Chats.updateOne(
             { _id: new ObjectId(chatID), 'messages.sender': { $ne: ID }, 'messages.read.done': false },
@@ -284,8 +284,8 @@ export default function socketHandler(io: Server) {
             { arrayFilters: [{ 'elem.sender': ID, 'elem.read.done': false }] }
           );
       }
-      catch (err) {
-        socket.emit('get messages', {error: err})
+      catch (err: any) {
+        callback({error: err.message});
       }
     })
 
@@ -362,13 +362,34 @@ export default function socketHandler(io: Server) {
     })
     */
 
-    socket.on('join room', ({roomID}) => {
+    /* socket.on('join room', (roomID) => {
       socket.join(roomID);
       var room = io.sockets.adapter.rooms.get(roomID) as Set<string> | undefined;
       if(room) {
+        console.log(roomID)
         socket.emit('join room', {room: [...room]});
       }      
     });
+    */
+    socket.on('join', (roomId: string) => {
+      const roomClients = io.sockets.adapter.rooms.get(roomId) || new Set<string>();
+    const numberOfClients = roomClients.size;
+  
+  
+      // These events are emitted only to the sender socket.
+      if (numberOfClients == 0) {
+        console.log(`Creating room ${roomId} and emitting room_created socket event`)
+        socket.join(roomId)
+        socket.emit('room_created', roomId)
+      } else if (numberOfClients == 1) {
+        console.log(`Joining room ${roomId} and emitting room_joined socket event`)
+        socket.join(roomId)
+        socket.emit('room_joined', roomId)
+      } else {
+        console.log(`Can't join room ${roomId}, emitting full_room socket event`)
+        socket.emit('full_room', roomId)
+      }
+    })
 
     socket.on('room message', ({roomID, message}) => {
       socket.broadcast.to(roomID).emit('room message', message);
