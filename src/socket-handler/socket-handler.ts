@@ -84,8 +84,8 @@ export default function socketHandler(io: Server) {
       }
       var result = await Chats.insertOne({
         users: [
-          { user: receiver._id, userName: receiver.userName },
-          { user: sender._id, userName: sender.userName }
+          { user: receiver._id, userName: receiver.userName, image: receiver.imageUrl },
+          { user: sender._id, userName: sender.userName, image: sender.imageUrl }
         ],
         messages: [],
         lastMessage: {receiver: receiver._id, text: `${sender.userName} created a new chat`},
