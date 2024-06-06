@@ -14,7 +14,7 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: ['http://127.0.0.1:5500', "http://localhost:5500", "https://ahmedaan.github.io"], // Allow requests from this origin
+    origin: ['http://127.0.0.1:5500', "http://localhost:5500", "https://ahmedaan.github.io", "http://localhost:5000"], // Allow requests from this origin
     methods: ["GET", "POST", "DELETE", "PATCH", "PUT"], // Allow these HTTP methods
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true

@@ -98,14 +98,32 @@ export default function socketHandler(io: Server) {
         throw new Error('Chat not found');
       }
 
-      const update: any = {
+      const senderUpdate: any = {
         $push: {
-          chats: { chatID: chat?._id }
+          chats: {
+            chatID: chat?._id,
+            receiver: {
+              userName: receiver.userName,
+              imagae: receiver.imageUrl
+            }
+           }
          }
       };
 
-      await UserChats.findOneAndUpdate({ userID: sender?._id }, update);
-      await UserChats.findOneAndUpdate({ userID: receiver?._id }, update);
+      const receiverUpdate: any = {
+        $push: {
+          chats: {
+            chatID: chat?._id,
+            receiver: {
+              userName: sender.userName,
+              imagae: sender.imageUrl
+            }
+           }
+         }
+      };
+
+      await UserChats.findOneAndUpdate({ userID: sender?._id }, senderUpdate);
+      await UserChats.findOneAndUpdate({ userID: receiver?._id }, receiverUpdate);
 
       const receiverSocketId = connectedUsers[(receiver._id).toString()];
       const senderSocketId = connectedUsers[(sender._id).toString()];
@@ -126,159 +144,167 @@ export default function socketHandler(io: Server) {
     }
   };
   io.on('connection', (socket: Socket) => {
-  try{
-    const cookies: string = socket.handshake.headers.cookie || "";
-    const jwt = cookie.parse(cookies).Authorization;
-    const secretKey = process.env.SECRETKEY || "";
-    const ID = Jwt.verify(jwt, secretKey);
-    if(typeof(ID)!='string' ){
-      var userID = ID._id
+    try {
+      const cookies: string = socket.handshake.headers.cookie || "";
+      const jwt = cookie.parse(cookies).Authorization;
+      const secretKey = process.env.SECRETKEY || "";
+      const ID = Jwt.verify(jwt, secretKey);
+      if (typeof (ID) != 'string') {
+        var userID = ID._id
       
-    }
+      }
 
   
-    if(userID){
-      connectedUsers[userID] = socket.id
-      socket.broadcast.emit("online", {userID: userID})
-      console.log(`User ${userID} connected`);
-      console.log(connectedUsers)
-    }
+      if (userID) {
+        connectedUsers[userID] = socket.id
+        socket.broadcast.emit("online", { userID: userID })
+        console.log(`User ${userID} connected`);
+        console.log(connectedUsers)
+      }
 
-    // Get chats
-    socket.on('get chats', async (page: any, callback) => {
-      try{
-        const limit = 20;
-        const skip = (page - 1) * limit;
+      // Get chats
+      socket.on('get chats', async (page: any, callback) => {
+        try {
+          const limit = 20;
+          const skip = (page - 1) * limit;
 
-        const userchats = await UserChats.findOne({ userID: new ObjectId(userID) })
-        console.log(userchats)
-        console.log(userID)
+          const userchats = await UserChats.findOne({ userID: new ObjectId(userID) })
 
-        if (!userchats) {
-          throw new Error('No user chats found');
-        }
+          if (!userchats) {
+            throw new Error('No user chats found');
+          }
         
-        const chatIDs = userchats.chats.map((chat: { chatID: any; }) => chat.chatID);
-        const chats = await Chats.find({ _id: { $in: chatIDs } }, 
-          { projection: { messages: false } })
-          .sort({lastUsage: -1})
-          .limit(limit)
-          .skip(skip)
-          .toArray();
+          const chatIDs = userchats.chats.map((chat: { chatID: any; }) => chat.chatID);
+          const chats = await Chats.find({ _id: { $in: chatIDs } },
+            { projection: { messages: false } })
+            .sort({ lastUsage: -1 })
+            .limit(limit)
+            .skip(skip)
+            .toArray();
 
           callback(chats);
-        console.log(chats)
-        for (const chat of chats) {
-          const chatID = chat._id;
-          const ID = new ObjectId(userID);
-          await Chats.updateOne(
-            { _id: chatID, 'messages.sender': { $ne: ID }, 'messages.received.done': false },
-            { $set: { 'messages.$[elem].received.done': true } },
-            { arrayFilters: [{ 'elem.sender': ID, 'elem.received.done': false }] }
-          );
+          for (const chat of chats) {
+            const chatID = chat._id;
+            const ID = new ObjectId(userID);
+            await Chats.updateOne(
+              { _id: chatID, 'messages.sender': { $ne: ID }, 'messages.received.done': false },
+              { $set: { 'messages.$[elem].received.done': true } },
+              { arrayFilters: [{ 'elem.sender': ID, 'elem.received.done': false }] }
+            );
+          }
         }
-      }
-      catch (err: any) {
-        console.log(err);
-        callback({error: err.message});
-      }
-    })
+        catch (err: any) {
+          callback({ error: err.message });
+        }
+      })
 
-    // Listen for chat messages
-    socket.on('message', async ({chatID, msg}) => {
-      try{
-        let currentTime = new Date();
-        let user_id = new ObjectId(userID);
-        let chat_id = new ObjectId(chatID);
+      // Listen for chat messages
+      socket.on('message', async ({ chatID, msg }) => {
+        try {
+          let currentTime = new Date();
+          let user_id = new ObjectId(userID);
+          let chat_id = new ObjectId(chatID);
 
-        const chat = await Chats.findOne({ _id: chat_id });
+          const chat = await Chats.findOne({ _id: chat_id });
 
-        if (!chat) {
-          throw new Error('Chat not found');
-        };
+          if (!chat) {
+            throw new Error('Chat not found');
+          };
         
-        const users = chat.users;
+          const users = chat.users;
 
-        const receivers = [];
+          const receivers = [];
 
-        for (let user of users) {
-          if(!(user.user).equals(user_id)) {
-            receivers.push(user);
+          for (let user of users) {
+            if (!(user.user).equals(user_id)) {
+              receivers.push(user);
+            }
           }
-        }
 
-        if (receivers.length < 1) {
-         throw new Error('Receivers not found');
-        }
-
-        const message = {
-          sender: user_id,
-          received: {
-            done: false,
-            time: currentTime
-          },
-          read: {
-            done: false,
-            time: currentTime
-          },
-          time: currentTime,
-          text: msg
-        }
-
-        const lastMessage = {
-          sender: user_id,
-          text: msg
-        }
-
-        const messagePacket = {
-          chatID: chat_id,
-          message: message
-        }
-
-        const result = await Chats.updateOne(
-          { _id: chat_id },
-          {
-            $push: { messages: message },
-            $set: { lastUsage: currentTime,
-            lastMessage: lastMessage }
-        }
-        );
-
-        if (result.modifiedCount === 0) {
-          throw new Error('Message not added');
-        };
-
-        for (let receiver of receivers) {
-          let receiverSocketId = connectedUsers[(receiver.user).toString()];
-          if (receiverSocketId) {
-            io.to(receiverSocketId).emit('message', {message: messagePacket});
+          if (receivers.length < 1) {
+            throw new Error('Receivers not found');
           }
+
+          const message = {
+            sender: user_id,
+            received: {
+              done: false,
+              time: currentTime
+            },
+            read: {
+              done: false,
+              time: currentTime
+            },
+            time: currentTime,
+            text: msg
+          }
+
+          const lastMessage = {
+            sender: user_id,
+            text: msg
+          }
+
+          const messagePacket = {
+            chatID: chat_id,
+            message: message
+          }
+
+          const result = await Chats.updateOne(
+            { _id: chat_id },
+            {
+              $push: { messages: message },
+              $set: {
+                lastUsage: currentTime,
+                lastMessage: lastMessage
+              }
+            }
+          );
+
+          if (result.modifiedCount === 0) {
+            throw new Error('Message not added');
+          };
+
+          for (let receiver of receivers) {
+            let receiverSocketId = connectedUsers[(receiver.user).toString()];
+            if (receiverSocketId) {
+              io.to(receiverSocketId).emit('message', { message: messagePacket });
+            }
+          }
+          socket.emit("message", { message: messagePacket })
         }
-        socket.emit("message", {message: messagePacket})
-      }
-      catch(err) {
-        socket.emit("message", {error: err})
-      }
-    });
+        catch (err) {
+          socket.emit("message", { error: err })
+        }
+      });
 
-    // Get Messages
-    socket.on('get messages', async (chatID, page, newMessages, callback) => {
-      try {
-        const limit = 20;
-        const skip = ((page - 1) * limit) + newMessages;
+      // Get Messages
+      socket.on('get messages', async (chatID, page, newMessages, callback) => {
+        try {
+          const limit = 20;
+          const skip = ((page - 1) * limit) + newMessages;
+          const messages = await Chats.aggregate([
+            { $match: { _id: new ObjectId(chatID) } },
+            { $project: { messages: 1, _id: 0 } },
+            { $unwind: "$messages" },
+            { $sort: { "messages.time": -1 } }
+          ])
+            .limit(limit)
+            .skip(skip)
+            .toArray();
+          const messagesArray = messages.map(({ messages }) => messages)
 
-        const messages = await Chats.aggregate([
-          { $match: { _id: new ObjectId(chatID) } },
-          { $project: { messages: 1, _id: 0 } },
-          { $unwind: "$messages" },
-          { $sort: { "messages.time": -1 } }
-        ])
-        .limit(limit)
-        .skip(skip)
-        .toArray();
-        const packet = messages.map(({ messages }) => messages)
+          const users = await Chats.findOne({ _id: new ObjectId(chatID) }, { projection: { _id: 0, users: 1 } })
+        
+
+          let packet;
+          for (let user of users?.users) {
+            if (user.user != new ObjectId(userID)) {
+              packet = user;
+            }
+          }
+          packet.messages = messagesArray;
     
-        callback(packet);
+          callback(packet);
           const ID = new ObjectId(userID);
           await Chats.updateOne(
             { _id: new ObjectId(chatID), 'messages.sender': { $ne: ID }, 'messages.read.done': false },
