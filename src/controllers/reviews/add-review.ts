@@ -10,7 +10,7 @@ export default async function addReview(request: any, response: Response) {
   const comment = requestHandler.input("comment");
   const service = requestHandler.input("service");
   const reviewsCollection = collection("reviews");
-  const reviewerId = request.user._id;
+  const reviewerId = request.user;
   const users = collection("users");
   const user = await users.findOne({ _id: new ObjectId(reviewerId) });
   const reviewerName=user?.userName
