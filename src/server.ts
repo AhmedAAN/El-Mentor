@@ -23,6 +23,7 @@ const io = new Server(httpServer, {
 });
 
 var handler = socketHandler(io);
+
 //using cors to access resources of the browser
 app.use(cors({
   origin: ['http://127.0.0.1:5500', "http://localhost:5500", "https://ahmedaan.github.io"], // Allow requests from this origin
