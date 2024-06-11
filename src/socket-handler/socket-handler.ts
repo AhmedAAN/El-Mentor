@@ -425,18 +425,25 @@ export default function socketHandler(io: Server) {
 
     // Handle WebRTC
     socket.on('start_call', (roomID) => {
+      console.log("start_call")
       socket.broadcast.to(roomID).emit('start_call')
     });
 
     socket.on('webrtc_offer', (event) => {
+      console.log("webrtc_offer")
+      console.log(event.sdp)
       socket.broadcast.to(event.roomID).emit('webrtc_offer', event.sdp)
     });
 
-    socket.on('webrtc_answer', (event) => {
+      socket.on('webrtc_answer', (event) => {
+      console.log("webrtc_answer")
+      console.log(event.sdp)
       socket.broadcast.to(event.roomID).emit('webrtc_answer', event.sdp)
     });
 
-    socket.on('webrtc_ice_candidate', (event) => {
+      socket.on('webrtc_ice_candidate', (event) => {
+      console.log("webrtc_ice_candidate")
+      console.log(event)
       socket.broadcast.to(event.roomID).emit('webrtc_ice_candidate', event)
     });
 
