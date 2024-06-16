@@ -178,8 +178,8 @@ export default function socketHandler(io: Server) {
           const chats = await Chats.find({ _id: { $in: chatIDs } },
             { projection: { messages: false } })
             .sort({ lastUsage: -1 })
-            .limit(limit)
             .skip(skip)
+            .limit(limit)
             .toArray();
 
           callback(chats);
@@ -288,9 +288,10 @@ export default function socketHandler(io: Server) {
             { $unwind: "$messages" },
             { $sort: { "messages.time": -1 } }
           ])
-            .limit(limit)
-            .skip(skip)
-            .toArray();
+          .skip(skip)
+          .limit(limit)
+          .toArray();
+
           const messagesArray = messages.map(({ messages }) => messages)
 
           const users = await Chats.findOne({ _id: new ObjectId(chatID) }, { projection: { _id: 0, users: 1 } })
