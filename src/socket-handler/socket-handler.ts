@@ -299,13 +299,12 @@ export default function socketHandler(io: Server) {
 
           let packet;
           for (let user of users?.users) {
-            if (user.user != new ObjectId(userID)) {
+            if (!user.user.equals(new ObjectId(userID)) ) {
               packet = user;
             }
           }
           packet.messages = messagesArray;
 
-          console.log(packet)
           callback(packet);
           const ID = new ObjectId(userID);
           await Chats.updateOne(
