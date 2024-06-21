@@ -304,7 +304,8 @@ export default function socketHandler(io: Server) {
             }
           }
           packet.messages = messagesArray;
-    
+
+          console.log(packet)
           callback(packet);
           const ID = new ObjectId(userID);
           await Chats.updateOne(
