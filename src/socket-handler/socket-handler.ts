@@ -104,7 +104,7 @@ export default function socketHandler(io: Server) {
             chatID: chat?._id,
             receiver: {
               userName: receiver.userName,
-              imagae: receiver.imageUrl
+              image: receiver.imageUrl
             }
            }
          }
@@ -116,7 +116,7 @@ export default function socketHandler(io: Server) {
             chatID: chat?._id,
             receiver: {
               userName: sender.userName,
-              imagae: sender.imageUrl
+              image: sender.imageUrl
             }
            }
          }
@@ -382,6 +382,35 @@ export default function socketHandler(io: Server) {
           }
         }
     });
+
+    // Handle searching
+    socket.on('searching', async (string: string, callback) => {
+      
+      let user_id = new ObjectId(userID);
+
+      try {
+
+      const pipeline = [
+      { $match: { userID: user_id } }, // Match the document with the given userID
+      { $unwind: '$chats' }, // Unwind the chats array
+      { $match: { 'chats.receiver.userName': { $regex: string, $options: 'i' } } }, // Match receiver.userName with the given text, case insensitive
+      { $replaceRoot: { newRoot: '$chats' } } // Group the results back into an array
+      ];
+
+      const result = await UserChats.aggregate(pipeline).toArray();
+      const chatIDs = result.map(chat => chat.chatID);
+      const chats = await Chats.find({ _id: { $in: chatIDs } },
+            { projection: { messages: false } })
+            .sort({ lastUsage: -1 })
+            .toArray();
+
+      callback(chats);
+      }
+      catch (err: any) {
+        console.log(err)
+          callback({ error: "No Results" });
+        }
+    })
 
     // Handle rooms
     /*
