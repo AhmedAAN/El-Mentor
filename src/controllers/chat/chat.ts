@@ -2,10 +2,10 @@ import { Request, Response } from "express";
 import { collection } from "../../models/connection";
 import { handler } from "../../server";
 
-export function notify(request: Request, response: Response) {
-  handler.notify(request.body.message, request.body.receiverID) 
+export async function notify(request: Request, response: Response) {
+  const notifyReturn = await handler.notify(request.body.message, request.body.receiverID) 
   
-  response.status(200).send({});
+  response.status(200).send(notifyReturn);
 }
 
 export function createRoom(request: Request, response: Response) {

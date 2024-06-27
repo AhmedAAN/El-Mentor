@@ -21,12 +21,23 @@ const connectedUsers: ConnectedUsers = {};
 export default function socketHandler(io: Server) {
 
   async function notify(message:string, ID: any) {
-    const receiverId = new ObjectId(ID)
-    const receiverSocketId = connectedUsers[receiverId.toString()]
+    
+    try {
+      const receiverId = new ObjectId(ID)
+      if (!receiverId) {
+        throw new Error('Receiver ID is wrong');
+      };
+      const receiverSocketId = connectedUsers[receiverId.toString()]
 
-    const socket = io.sockets.sockets.get(receiverSocketId)
-
-    try{
+      var socket
+      if (receiverSocketId) {
+        socket = io.sockets.sockets.get(receiverSocketId)
+      }
+      else {
+        socket = null
+      }
+  
+      
       const notifications = await Notifications.findOne({ receiverId: receiverId });
       if (!notifications) {
         throw new Error('Notifications not found');
@@ -53,9 +64,12 @@ export default function socketHandler(io: Server) {
           }
         );
       }
+
+      return ({success: "Notification sent successfully"})
     }
     catch(err){
       console.log(err);
+      return ({error: err})
     }
 
     
