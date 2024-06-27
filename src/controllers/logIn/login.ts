@@ -43,7 +43,7 @@ export default async function login(request: any, reply: Response) {
     reply.cookie("Authorization", token, { maxAge: 1000 * 60 * 60 * 24 * 5 , sameSite: "none", secure: true}); //five days
     const origin = request.headers.origin;
     reply.setHeader('Access-Control-Allow-Origin', origin);
-    /* reply.setHeader('Access-Control-Allow-Origin', 'http://localhost:5500');  */
+    /* reply.setHeader('Access-Control-Allow-Origin', 'http://localhost:5500'); */
     reply.status(200).send({
       user: finalUser,
     });
