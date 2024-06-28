@@ -307,7 +307,8 @@ export default function socketHandler(io: Server) {
       });
 
       socket.on('audio message', (audioBlob, callback) => {
-        saveAudioFile(audioBlob, callback);
+        const buffer = Buffer.from(audioBlob);
+        saveAudioFile(buffer, callback);
       })
 
       // Get Messages
