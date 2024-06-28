@@ -2,7 +2,10 @@ import { Server, Socket } from 'socket.io';
 import { collection } from "../models/connection";
 import { ObjectId } from "mongodb";
 import { emit } from 'node:process';
+import multer from 'multer';
+import path from 'path';
 import Jwt from "jsonwebtoken";
+import { saveAudioFile, getAudioFile } from "../controllers/chat/audioMessage"
 var cookie = require("cookie")
 
 
@@ -17,16 +20,39 @@ type ConnectedUsers = {
 
 const connectedUsers: ConnectedUsers = {};
 
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+  }
+});
+
+// Multer upload configuration
+const upload = multer({ storage: storage });
+
 
 export default function socketHandler(io: Server) {
 
   async function notify(message:string, ID: any) {
-    const receiverId = new ObjectId(ID)
-    const receiverSocketId = connectedUsers[receiverId.toString()]
+    
+    try {
+      const receiverId = new ObjectId(ID)
+      if (!receiverId) {
+        throw new Error('Receiver ID is wrong');
+      };
+      const receiverSocketId = connectedUsers[receiverId.toString()]
 
-    const socket = io.sockets.sockets.get(receiverSocketId)
-
-    try{
+      var socket
+      if (receiverSocketId) {
+        socket = io.sockets.sockets.get(receiverSocketId)
+      }
+      else {
+        socket = null
+      }
+  
+      
       const notifications = await Notifications.findOne({ receiverId: receiverId });
       if (!notifications) {
         throw new Error('Notifications not found');
@@ -53,9 +79,12 @@ export default function socketHandler(io: Server) {
           }
         );
       }
+
+      return ({success: "Notification sent successfully"})
     }
     catch(err){
       console.log(err);
+      return ({error: err})
     }
 
     
@@ -74,6 +103,7 @@ export default function socketHandler(io: Server) {
     return (roomID)
   }
   async function createChat(ID1: any, ID2: any) {
+
     try{
       const receiver = await Users.findOne({ _id: new ObjectId(ID1) })
       const sender = await Users.findOne({ _id: new ObjectId(ID2) })
@@ -83,8 +113,8 @@ export default function socketHandler(io: Server) {
       }
       var result = await Chats.insertOne({
         users: [
-          { user: receiver._id, userName: receiver.userName },
-          { user: sender._id, userName: sender.userName }
+          { user: receiver._id, userName: receiver.userName, image: receiver.imageUrl },
+          { user: sender._id, userName: sender.userName, image: sender.imageUrl }
         ],
         messages: [],
         lastMessage: {receiver: receiver._id, text: `${sender.userName} created a new chat`},
@@ -97,14 +127,32 @@ export default function socketHandler(io: Server) {
         throw new Error('Chat not found');
       }
 
-      const update: any = {
+      const senderUpdate: any = {
         $push: {
-          chats: { chatID: chat?._id }
+          chats: {
+            chatID: chat?._id,
+            receiver: {
+              userName: receiver.userName,
+              image: receiver.imageUrl
+            }
+           }
          }
       };
 
-      await UserChats.findOneAndUpdate({ userID: sender?._id }, update);
-      await UserChats.findOneAndUpdate({ userID: receiver?._id }, update);
+      const receiverUpdate: any = {
+        $push: {
+          chats: {
+            chatID: chat?._id,
+            receiver: {
+              userName: sender.userName,
+              image: sender.imageUrl
+            }
+           }
+         }
+      };
+
+      await UserChats.findOneAndUpdate({ userID: sender?._id }, senderUpdate);
+      await UserChats.findOneAndUpdate({ userID: receiver?._id }, receiverUpdate);
 
       const receiverSocketId = connectedUsers[(receiver._id).toString()];
       const senderSocketId = connectedUsers[(sender._id).toString()];
@@ -113,10 +161,10 @@ export default function socketHandler(io: Server) {
       const senderSocket= io.sockets.sockets.get(senderSocketId)
 
       if (receiverSocket) {
-        receiverSocket.emit('chat created', {chat: chat});
+        receiverSocket.emit('chat created', chat);
       }
       if (senderSocket) {
-        senderSocket.emit('chat created', {chat: chat});
+        senderSocket.emit('chat created', chat);
       }
       return(0)
     }
@@ -125,154 +173,184 @@ export default function socketHandler(io: Server) {
     }
   };
   io.on('connection', (socket: Socket) => {
-    const cookies: string = socket.handshake.headers.cookie || "";
-    const jwt = cookie.parse(cookies).Authorization;
-    const secretKey = process.env.SECRETKEY || "";
-    const ID = Jwt.verify(jwt, secretKey);
-    if(typeof(ID)!='string' ){
-      var userID = ID._id
+    try {
+      const cookies: string = socket.handshake.headers.cookie || "";
+      const jwt = cookie.parse(cookies).Authorization;
+      const secretKey = process.env.SECRETKEY || "";
+      const ID = Jwt.verify(jwt, secretKey);
+      if (typeof (ID) != 'string') {
+        var userID = ID._id
       
-    }
+      }
 
   
-    if(userID){
-      connectedUsers[userID] = socket.id
-      socket.broadcast.emit("online", {userID: userID})
-      console.log(`User ${userID} connected`);
-      console.log(connectedUsers)
-    }
+      if (userID) {
+        connectedUsers[userID] = socket.id
+        socket.broadcast.emit("online", { userID: userID })
+        console.log(`User ${userID} connected`);
+        console.log(connectedUsers)
+      }
 
-    // Get chats
-    socket.on('get chats', async (page: any) => {
-      try{
-        const limit = 20;
-        const skip = (page.page - 1) * limit;
+      // Get chats
+      socket.on('get chats', async (page: any, callback) => {
+        try {
+          const limit = 20;
+          const skip = (page - 1) * limit;
 
-        const userchats = await UserChats.findOne({ userID: new ObjectId(userID) })
+          const userchats = await UserChats.findOne({ userID: new ObjectId(userID) })
 
-        if (!userchats) {
-          throw new Error('No user chats found');
-        }
+          if (!userchats) {
+            throw new Error('No user chats found');
+          }
         
-        const chatIDs = userchats.chats.map((chat: { chatID: any; }) => chat.chatID);
-        const chats = await Chats.find({ _id: { $in: chatIDs } }, 
-          { projection: { messages: false } })
-          .sort({lastUsage: -1})
-          .limit(limit)
-          .skip(skip)
-          .toArray();
+          const chatIDs = userchats.chats.map((chat: { chatID: any; }) => chat.chatID);
+          const chats = await Chats.find({ _id: { $in: chatIDs } },
+            { projection: { messages: false } })
+            .sort({ lastUsage: -1 })
+            .skip(skip)
+            .limit(limit)
+            .toArray();
 
-        socket.emit('get chats', {chats});
-        for (const chat of chats) {
-          const chatID = chat._id;
-          const ID = new ObjectId(userID);
-          await Chats.updateOne(
-            { _id: chatID, 'messages.sender': { $ne: ID }, 'messages.received.done': false },
-            { $set: { 'messages.$[elem].received.done': true } },
-            { arrayFilters: [{ 'elem.sender': ID, 'elem.received.done': false }] }
+          callback(chats);
+          for (const chat of chats) {
+            const chatID = chat._id;
+            const ID = new ObjectId(userID);
+            await Chats.updateOne(
+              { _id: chatID, 'messages.sender': { $ne: ID }, 'messages.received.done': false },
+              { $set: { 'messages.$[elem].received.done': true } },
+              { arrayFilters: [{ 'elem.sender': ID, 'elem.received.done': false }] }
+            );
+          }
+        }
+        catch (err: any) {
+          callback({ error: err.message });
+        }
+      })
+
+      // Listen for chat messages
+      socket.on('message', async ({ chatID, msg }) => {
+        try {
+          let currentTime = new Date();
+          let user_id = new ObjectId(userID);
+          let chat_id = new ObjectId(chatID);
+
+          const chat = await Chats.findOne({ _id: chat_id });
+
+          if (!chat) {
+            throw new Error('Chat not found');
+          };
+        
+          const users = chat.users;
+
+          const receivers = [];
+
+          for (let user of users) {
+            if (!(user.user).equals(user_id)) {
+              receivers.push(user);
+            }
+          }
+
+          if (receivers.length < 1) {
+            throw new Error('Receivers not found');
+          }
+
+          const message = {
+            sender: user_id,
+            received: {
+              done: false,
+              time: currentTime
+            },
+            read: {
+              done: false,
+              time: currentTime
+            },
+            time: currentTime,
+            text: msg
+          }
+
+          const lastMessage = {
+            sender: user_id,
+            text: msg
+          }
+
+          const messagePacket = {
+            chatID: chat_id,
+            message: message
+          }
+
+          const result = await Chats.updateOne(
+            { _id: chat_id },
+            {
+              $push: { messages: message },
+              $set: {
+                lastUsage: currentTime,
+                lastMessage: lastMessage
+              }
+            }
           );
-        }
-      }
-      catch (err) {
-        socket.emit("get chats", {error: err})
-      }
-    })
 
-    // Listen for chat messages
-    socket.on('message', async ({chatID, msg}) => {
-      try{
-        let currentTime = new Date();
-        let user_id = new ObjectId(userID);
-        let chat_id = new ObjectId(chatID);
+          if (result.modifiedCount === 0) {
+            throw new Error('Message not added');
+          };
 
-        const chat = await Chats.findOne({ _id: chat_id });
-
-        if (!chat) {
-          throw new Error('Chat not found');
-        };
-        
-        const users = chat.users;
-
-        const receivers = [];
-
-        for (let user of users) {
-          if(!(user.user).equals(user_id)) {
-            receivers.push(user);
+          for (let receiver of receivers) {
+            let receiverSocketId = connectedUsers[(receiver.user).toString()];
+            if (receiverSocketId) {
+              io.to(receiverSocketId).emit('message', { message: messagePacket });
+            }
           }
+          socket.emit("message", { message: messagePacket })
         }
-
-        if (receivers.length < 1) {
-         throw new Error('Receivers not found');
+        catch (err) {
+          socket.emit("message", { error: err })
         }
+      });
 
-        const message = {
-          sender: user_id,
-          received: {
-            done: false,
-            time: currentTime
-          },
-          read: {
-            done: false,
-            time: currentTime
-          },
-          time: currentTime,
-          text: msg
-        }
+      socket.on('audio message', (audioBlob, callback) => {
+        const buffer = Buffer.from(audioBlob);
+        saveAudioFile(buffer, callback);
+      })
 
-        const lastMessage = {
-          sender: user_id,
-          text: msg
-        }
-
-        const messagePacket = {
-          chatID: chat_id,
-          message: message
-        }
-
-        const result = await Chats.updateOne(
-          { _id: chat_id },
-          {
-            $push: { messages: message },
-            $set: { lastUsage: currentTime,
-            lastMessage: lastMessage }
-        }
-        );
-
-        if (result.modifiedCount === 0) {
-          throw new Error('Message not added');
-        };
-
-        for (let receiver of receivers) {
-          let receiverSocketId = connectedUsers[(receiver.user).toString()];
-          if (receiverSocketId) {
-            io.to(receiverSocketId).emit('message', {message: messagePacket});
-          }
-        }
-        socket.emit("message", {message: messagePacket})
-      }
-      catch(err) {
-        socket.emit("message", {error: err})
+      socket.on('get audio message', (filename: string, callback: (response: { success: boolean; message: string; data?: ArrayBuffer }) => void) => {
+    console.log(`Received request to get audio file: ${filename}`);
+    getAudioFile(filename, (result) => {
+      if (result.success && result.data) {
+        callback({ success: true, message: 'Audio file retrieved successfully', data: result.data.buffer });
+      } else {
+        callback({ success: false, message: result.message });
       }
     });
+  });
 
-    // Get Messages
-    socket.on('get messages', async ({chatID, page, newMessages}) => {
-      try {
-        const limit = 20;
-        const skip = ((page - 1) * limit) + newMessages;
+      // Get Messages
+      socket.on('get messages', async (chatID, page, newMessages, callback) => {
+        try {
+          const limit = 20;
+          const skip = ((page - 1) * limit) + newMessages;
+          const messages = await Chats.aggregate([
+            { $match: { _id: new ObjectId(chatID) } },
+            { $project: { messages: 1, _id: 0 } },
+            { $unwind: "$messages" },
+            { $sort: { "messages.time": -1 } }
+          ])
+          .skip(skip)
+          .limit(limit)
+          .toArray();
 
-        const messages = await Chats.aggregate([
-          { $match: { _id: new ObjectId(chatID) } },
-          { $project: { messages: 1, _id: 0 } },
-          { $unwind: "$messages" },
-          { $sort: { "messages.time": -1 } }
-        ])
-        .limit(limit)
-        .skip(skip)
-        .toArray();
-        const packet = messages.map(({ messages }) => messages)
-    
-        socket.emit('get messages', {messages: packet});
+          const messagesArray = messages.map(({ messages }) => messages)
+
+          const users = await Chats.findOne({ _id: new ObjectId(chatID) }, { projection: { _id: 0, users: 1 } })
+        
+
+          let packet;
+          for (let user of users?.users) {
+            if (!user.user.equals(new ObjectId(userID)) ) {
+              packet = user;
+            }
+          }
+          packet.messages = messagesArray;
+
+          callback(packet);
           const ID = new ObjectId(userID);
           await Chats.updateOne(
             { _id: new ObjectId(chatID), 'messages.sender': { $ne: ID }, 'messages.read.done': false },
@@ -280,8 +358,8 @@ export default function socketHandler(io: Server) {
             { arrayFilters: [{ 'elem.sender': ID, 'elem.read.done': false }] }
           );
       }
-      catch (err) {
-        socket.emit('get messages', {error: err})
+      catch (err: any) {
+        callback({error: err.message});
       }
     })
 
@@ -350,6 +428,35 @@ export default function socketHandler(io: Server) {
         }
     });
 
+    // Handle searching
+    socket.on('searching', async (string: string, callback) => {
+      
+      let user_id = new ObjectId(userID);
+
+      try {
+
+      const pipeline = [
+      { $match: { userID: user_id } }, // Match the document with the given userID
+      { $unwind: '$chats' }, // Unwind the chats array
+      { $match: { 'chats.receiver.userName': { $regex: string, $options: 'i' } } }, // Match receiver.userName with the given text, case insensitive
+      { $replaceRoot: { newRoot: '$chats' } } // Group the results back into an array
+      ];
+
+      const result = await UserChats.aggregate(pipeline).toArray();
+      const chatIDs = result.map(chat => chat.chatID);
+      const chats = await Chats.find({ _id: { $in: chatIDs } },
+            { projection: { messages: false } })
+            .sort({ lastUsage: -1 })
+            .toArray();
+
+      callback(chats);
+      }
+      catch (err: any) {
+        console.log(err)
+          callback({ error: "No Results" });
+        }
+    })
+
     // Handle rooms
     /*
     socket.on('create room', ()=> {
@@ -358,13 +465,34 @@ export default function socketHandler(io: Server) {
     })
     */
 
-    socket.on('join room', ({roomID}) => {
+    /* socket.on('join room', (roomID) => {
       socket.join(roomID);
       var room = io.sockets.adapter.rooms.get(roomID) as Set<string> | undefined;
       if(room) {
+        console.log(roomID)
         socket.emit('join room', {room: [...room]});
       }      
     });
+    */
+    socket.on('join', (roomId: string) => {
+      const roomClients = io.sockets.adapter.rooms.get(roomId) || new Set<string>();
+    const numberOfClients = roomClients.size;
+  
+  
+      // These events are emitted only to the sender socket.
+      if (numberOfClients == 0) {
+        console.log(`Creating room ${roomId} and emitting room_created socket event`)
+        socket.join(roomId)
+        socket.emit('room_created', roomId)
+      } else if (numberOfClients == 1) {
+        console.log(`Joining room ${roomId} and emitting room_joined socket event`)
+        socket.join(roomId)
+        socket.emit('room_joined', roomId)
+      } else {
+        console.log(`Can't join room ${roomId}, emitting full_room socket event`)
+        socket.emit('full_room', roomId)
+      }
+    })
 
     socket.on('room message', ({roomID, message}) => {
       socket.broadcast.to(roomID).emit('room message', message);
@@ -372,18 +500,25 @@ export default function socketHandler(io: Server) {
 
     // Handle WebRTC
     socket.on('start_call', (roomID) => {
+      console.log("start_call")
       socket.broadcast.to(roomID).emit('start_call')
     });
 
     socket.on('webrtc_offer', (event) => {
+      console.log("webrtc_offer")
+      console.log(event.sdp)
       socket.broadcast.to(event.roomID).emit('webrtc_offer', event.sdp)
     });
 
-    socket.on('webrtc_answer', (event) => {
+      socket.on('webrtc_answer', (event) => {
+      console.log("webrtc_answer")
+      console.log(event.sdp)
       socket.broadcast.to(event.roomID).emit('webrtc_answer', event.sdp)
     });
 
-    socket.on('webrtc_ice_candidate', (event) => {
+      socket.on('webrtc_ice_candidate', (event) => {
+      console.log("webrtc_ice_candidate")
+      console.log(event)
       socket.broadcast.to(event.roomID).emit('webrtc_ice_candidate', event)
     });
 
@@ -396,6 +531,11 @@ export default function socketHandler(io: Server) {
         console.log(connectedUsers)
       }
     });
+    }
+    catch (err: any) {
+        console.log(err);
+        socket.emit("connection", {error: err.message});
+      }
   });
   return {
     notify,
