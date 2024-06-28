@@ -2,7 +2,10 @@ import { Server, Socket } from 'socket.io';
 import { collection } from "../models/connection";
 import { ObjectId } from "mongodb";
 import { emit } from 'node:process';
+import multer from 'multer';
+import path from 'path';
 import Jwt from "jsonwebtoken";
+import {saveAudioFile} from "../controllers/chat/audioMessage"
 var cookie = require("cookie")
 
 
@@ -16,6 +19,18 @@ type ConnectedUsers = {
   }
 
 const connectedUsers: ConnectedUsers = {};
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+  }
+});
+
+// Multer upload configuration
+const upload = multer({ storage: storage });
 
 
 export default function socketHandler(io: Server) {
@@ -290,6 +305,10 @@ export default function socketHandler(io: Server) {
           socket.emit("message", { error: err })
         }
       });
+
+      socket.on('audio message', (audioBlob, callback) => {
+        saveAudioFile(audioBlob, callback);
+      })
 
       // Get Messages
       socket.on('get messages', async (chatID, page, newMessages, callback) => {
