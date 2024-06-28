@@ -24,11 +24,12 @@ export default async function login(request: any, reply: Response) {
       error: "User not found",
     });
   }
-  const finalUser = {
+  /*const finalUser = {
     _id: user._id,
     userName: user.userName,
     email: user.email,
-  };
+  };*/
+  const finalUser = user;
   const token = await newAccessToken({ _id: user._id }, secretKey, {
     expiresIn: "10d",
     algorithm: "HS256",
@@ -40,8 +41,12 @@ export default async function login(request: any, reply: Response) {
   if (passCompare) {
     await accessToken.insertOne({ id: user._id, token: token });
     delete user.password;
-    reply.cookie("Authorization", token, { maxAge: 1000 * 60 * 60 * 24 * 5 , sameSite: "none", secure: true}); //five days
-    reply.setHeader('Access-Control-Allow-Origin', 'http://127.0.0.1:5500');
+    reply.cookie("Authorization", token, {
+      maxAge: 1000 * 60 * 60 * 24 * 5,
+      sameSite: "none",
+      secure: true,
+    }); //five days
+    reply.setHeader("Access-Control-Allow-Origin", "http://127.0.0.1:5500");
     reply.status(200).send({
       user: finalUser,
     });
