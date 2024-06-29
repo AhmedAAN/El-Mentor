@@ -6,21 +6,23 @@ import { listMentor } from "../../controllers/mentor/list-mentor";
 import { listMentors } from "../../controllers/mentor/list-mentors";
 import verifyToken from "../../validation/users/compare-token";
 import verifyAdminOrMentor from "../../validation/mentor/mentor-or-admin";
+import  updateUser  from "../../controllers/mentor/updateUser";
+
 //router use
 const router = express.Router();
 //routes
-router.get("/listMentors", listMentors);
-router.get("/listMentor/:id", listMentor);
-router.post("/mentor/signup", addMentor);
+router.get("/listMentors", listMentors);//
+router.get("/listMentor/:id", listMentor);//
+router.post("/mentor/signup", addMentor);//
 router.delete(
-  "/deleteMentor/:id",
+  "/deleteUser",
   [verifyToken],
   deleteMentor
-);
+);//
 router.patch(
-  "/updateMentor/:id",
+  "/updateUser",
   [verifyToken],
   updateMentor
-);
-
+);//
+router.patch("/updateOne",[verifyToken],updateUser)//<<
 export default router;

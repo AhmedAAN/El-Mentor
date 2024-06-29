@@ -6,18 +6,19 @@ import { Request, Response } from "express";
 export default async function reset(request: Request, res: Response) {
   const requestHandler = handle(request);
   const password: string = requestHandler.input("password");
-  const code: string = requestHandler.input("code");
+  const code: number = +requestHandler.input("code");
   console.log(code, password);
-  if ( !password && !code) {
+  if (!password && !code) {
     return res.send({ error: "all fields are required" });
   }
   const usersCollection = collection("users");
   const user = await usersCollection.findOne({ code: code });
+  console.log(user);
 
   if (!user) {
     return res.status(404).send({ error: "code not found" });
   }
-  
+
   const newPassword = await hash(password);
   await usersCollection.updateOne(
     { code: code },

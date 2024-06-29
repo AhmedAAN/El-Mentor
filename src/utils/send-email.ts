@@ -3,9 +3,9 @@ import * as dotenv from "dotenv";
 dotenv.config();
 const email: string = String(process.env.SENDER_EMAIL);
 const password: string = String(process.env.SENDER_PASSWORD);
-console.log("email = "+process.env.SENDER_EMAIL)
-console.log("PASSWORD = "+process.env.SENDER_PASSWORD)
-export async function forgetEmail(userEmail: string, subject: string) {
+console.log("email = " + process.env.SENDER_EMAIL);
+console.log("PASSWORD = " + process.env.SENDER_PASSWORD);
+export async function forgetEmail(userEmail: string, subject: number) {
   try {
     const transporter = nodemailer.createTransport({
       service: "gmail",

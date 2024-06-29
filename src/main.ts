@@ -1,12 +1,13 @@
 import dotenv from "dotenv";
 import { connection } from "./models/connection";
-import app from "./server";
+import { app } from "./server";
 import logInRouter from "./routes/login/logIn";
 import mentorRouter from "./routes/mentor/mentor-routes";
 import servicesRouter from "./routes/services/services";
 import studentRouter from "./routes/student/student-routes";
 import reviewsRouter from "./routes/reviews/reviews";
 import adminRouter from "./routes/admin/admin";
+import chatRouter from "./routes/chat/chat";
 
 dotenv.config();
 //using routesss
@@ -21,3 +22,5 @@ app.use(servicesRouter);
 app.use(studentRouter);
 app.use(reviewsRouter);
 app.use(adminRouter);
+app.use(chatRouter);
+

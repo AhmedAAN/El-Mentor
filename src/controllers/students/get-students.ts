@@ -5,6 +5,7 @@ import { ObjectId } from "mongodb";
 
 export async function listStudents(request: Request, response: Response) {
   const requestHandeler = handle(request);
+  console.log((request as any).user);
   const studentsCollection = collection("users");
   try {
     const students = await studentsCollection

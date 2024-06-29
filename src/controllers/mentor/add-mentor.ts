@@ -10,7 +10,7 @@ export async function addMentor(request: Request, response: Response) {
   //mentor input
   const validationReasult = await validation(requestHandeler,request);
   if (validationReasult == true) {
-    return response.status(200).send("mentor added successfully");
+    return response.status(200).send({msg:"mentor added successfully"});
   }
-  response.status(200).send(validationReasult);
+  response.status(200).send({msg:validationReasult});
 }

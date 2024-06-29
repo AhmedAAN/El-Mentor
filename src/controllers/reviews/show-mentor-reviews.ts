@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import handle from "../../core/request-class";
 import { collection } from "../../models/connection";
+import { ObjectId } from "mongodb";
 
 export default async function showMentorsReviews(
   request: any,
@@ -9,13 +10,14 @@ export default async function showMentorsReviews(
   const requestHandler = handle(request);
   const mentorId = requestHandler.input("mentorId");
   const reviewsCollection = collection("reviews");
-  const limit = 10;
+  const limit = 8;
   const page = +requestHandler.input("page") || 1;
   const skip = (page - 1) * limit;
+  console.log(mentorId)
   try {
     const reviews = await reviewsCollection
       .find({
-        mentorId,
+        mentorId:new ObjectId(mentorId),
       })
       .limit(limit)
       .skip(skip)

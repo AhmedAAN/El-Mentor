@@ -7,12 +7,15 @@ import handle from "../../core/request-class";
 
 export default async function valid(request: any) {
   const studentsCollection = collection("users");
+  const UserChats = collection("UserChats");
+  const Notifications = collection("Notifications");
   const requestHandeler = handle(request);
 
   const userName = requestHandeler.input("userName");
   const email = requestHandeler.input("email");
   const password = requestHandeler.input("password");
   const confirmPassword = requestHandeler.input("confirmPassword");
+  const specialization = requestHandeler.input("specialization");
   const findEmail = await studentsCollection.findOne({ email: email });
   const validRegex =
     /^[a-zA-Z0-9.!#$%^&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9]+)*$/;
@@ -40,23 +43,38 @@ export default async function valid(request: any) {
     baseName = null;
     myPath = null;
   }
-  console.log(baseName)
-
+  console.log(baseName);
+  console.log(confirmPassword);
   if (!email.match(validRegex)) {
     return "Please enter a valid email";
-  } else if (findEmail) {
+  }
+  if (findEmail) {
     return "Email already exists";
-  } else if (password !== confirmPassword && password.length < 8) {
+  }
+  if (password !== confirmPassword || password.length < 8) {
     return "Password is incorrect";
+  }
+  if (!specialization) {
+    return "specialization is required";
   } else {
     const finalPass = await hash(password);
-    await studentsCollection.insertOne({
+    var result = await studentsCollection.insertOne({
       userName,
       email,
-      imageLink: imageUrl,
-      imageName: baseName,
+      imageUrl: imageUrl,
+      baseName,
       password: finalPass,
       student: true,
+      specialization,
+    });
+    await UserChats.insertOne({
+      userID: result.insertedId,
+      chats: []
+    });
+    await Notifications.insertOne({
+      receiverId: result.insertedId,
+      old: [],
+      new: []
     });
     return true;
   }

@@ -9,10 +9,10 @@ import verifyAdminOrStudent from "../../validation/admin/verify-admin-or-reviewe
 import studentReview from "../../validation/student/studentReview";
 const router = express.Router();
 
-router.get("/reviews/:mentorId", showMentorsReviews);
+router.get("/reviews/:mentorId", showMentorsReviews);//
 router.get("/review/:reviewId", showReview);
-router.post("/review/:mentorId", [verifyToken], addReview);
-router.delete("/review/:reviewId",[ verifyToken], deleteReview);//verifyAdminOrStudent:for admin and the user who made the review, should be able to delete it
+router.post("/review/:mentorId", [verifyToken], addReview);//
+router.delete("/review/:reviewId",[ verifyToken], deleteReview);//
 router.put("/updateReview/:reviewId", [verifyToken], updateReview);//studentReview:for student to update review for a mentor
 
 export default router;
