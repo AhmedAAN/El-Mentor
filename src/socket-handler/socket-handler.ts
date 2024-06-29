@@ -68,7 +68,7 @@ export default function socketHandler(io: Server) {
           { receiverId: receiverId },
           {
             $push: { old: notification }
-          }
+          } 
         );
         socket.emit('notification', message);
       } else {
