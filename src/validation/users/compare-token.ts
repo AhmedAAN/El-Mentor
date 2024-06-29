@@ -17,7 +17,7 @@ export default async function verifyToken(req: any, res: Response, next: any) {
   try {
     const secretKey = process.env.SECRETKEY || "";
     const result = await Jwt.verify(token, secretKey);
-    console.log(result)
+   // console.log(result)
     const found = await accessToken.findOne({ token: token });
     if (!found) {
       return res.status(404).send({ error: "not found" });
