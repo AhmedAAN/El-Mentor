@@ -6,5 +6,7 @@ export default function deletePhoto(PhotoName: any) {
   let myPath: string | null = path.normalize(
     __dirname + `../../../storage/uploads/${PhotoName}`
   );
+  if(myPath){
   fs.unlinkSync(myPath);
+}
 }
