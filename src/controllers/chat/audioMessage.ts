@@ -1,40 +1,114 @@
-import * as path from 'path';
-import * as fs from 'fs';
+import storage from "../../utils/firebase"
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { collection } from "../../models/connection";
+import { ObjectId } from "mongodb";
+import { Server } from 'socket.io';
 
-export const saveAudioFile = (audioBlob: Buffer, callback: (result: { success: boolean; message: string; filename?: string }) => void) => {
-  const uploadsDir = path.join(__dirname, 'uploads');
+const Chats = collection("Chats");
+
+type ConnectedUsers = {
+  [userID: string]: string;
+}
+
+const saveAudioFile = async (audioBlob: Buffer) => {
   const filename = `audio-${Date.now()}.wav`;
-  const filePath = path.join(uploadsDir, filename);
+  const storageRef = ref(storage, `audio/${filename}`);
 
-  // Ensure the uploads directory exists
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-    console.log(`Created uploads directory at ${uploadsDir}`);
+  try {
+    const snapshot = await uploadBytes(storageRef, audioBlob);
+    console.log('Uploaded a blob or file!');
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    console.log('File available at', downloadURL);
+    return({ success: true, message: 'Audio uploaded successfully', downloadURL });
+  } catch (error) {
+    console.error('Error saving audio file:', error);
+    return({ success: false, message: 'Error saving audio file' });
   }
-
-  console.log(`Saving audio file to: ${filePath}`);
-
-  fs.writeFile(filePath, audioBlob, (err) => {
-    if (err) {
-      console.error('Error saving audio file:', err);
-      callback({ success: false, message: 'Error saving audio file' });
-    } else {
-      console.log('Audio file saved:', filename);
-      callback({ success: true, message: 'Audio uploaded successfully', filename });
-    }
-  });
 };
 
-export const getAudioFile = (filename: string, callback: (result: { success: boolean; message: string; data?: Buffer }) => void) => {
-  const filePath = path.join(__dirname, 'uploads', filename);
+export const sendAudioFile = async (audioBlob: Buffer, userID: string, chatID: string, connectedUsers:ConnectedUsers, io: any, callback: (result: { success: boolean; message: string; downloadURL?: string }) => void) => {
+  try {
+    let currentTime = new Date();
+    let user_id = new ObjectId(userID);
+    let chat_id = new ObjectId(chatID);
 
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
-      console.error('Error reading audio file:', err);
-      callback({ success: false, message: 'Error reading audio file' });
-    } else {
-      console.log('Audio file read successfully:', filename);
-      callback({ success: true, message: 'Audio file retrieved successfully', data });
+    const chat = await Chats.findOne({ _id: chat_id });
+
+    if (!chat) {
+      throw new Error('Chat not found');
+    };
+        
+    const users = chat.users;
+
+    const receivers = [];
+
+    for (let user of users) {
+      if (!(user.user).equals(user_id)) {
+        receivers.push(user);
+      }
     }
-  });
+
+    if (receivers.length < 1) {
+      throw new Error('Receivers not found');
+    }
+
+    const saveAudio = await saveAudioFile(audioBlob)
+
+    if (!saveAudio.success) {
+      callback(saveAudio)
+    }
+
+    const file = saveAudio.downloadURL
+
+    const message = {
+      sender: user_id,
+      received: {
+        done: false,
+        time: currentTime
+      },
+      read: {
+        done: false,
+        time: currentTime
+      },
+      time: currentTime,
+      audio: file
+    }
+
+    const lastMessage = {
+      sender: user_id,
+      audio: "audio message"
+    }
+
+    const messagePacket = {
+      chatID: chat_id,
+      message: message
+    }
+
+    const result = await Chats.updateOne(
+      { _id: chat_id },
+      {
+        $push: { messages: message },
+        $set: {
+          lastUsage: currentTime,
+          lastMessage: lastMessage
+        }
+      }
+    );
+
+    if (result.modifiedCount === 0) {
+      throw new Error('Message not added');
+    };
+
+    for (let receiver of receivers) {
+      let receiverSocketId = connectedUsers[(receiver.user).toString()];
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit('message', { message: messagePacket });
+      }
+    }
+    callback(saveAudio)
+  }
+  catch (err) {
+    console.error('Error saving audio link to chat database:', err);
+    callback({ success: false, message: 'Error saving audio file to datebase' });
+  }
 };
