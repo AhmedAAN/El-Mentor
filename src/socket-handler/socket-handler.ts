@@ -5,7 +5,7 @@ import { emit } from 'node:process';
 import multer from 'multer';
 import path from 'path';
 import Jwt from "jsonwebtoken";
-import { saveAudioFile, getAudioFile } from "../controllers/chat/audioMessage"
+import { sendAudioFile } from "../controllers/chat/audioMessage"
 var cookie = require("cookie")
 
 
@@ -69,6 +69,7 @@ export default function socketHandler(io: Server) {
           {
             $push: { old: notification }
           }
+          
         );
         socket.emit('notification', message);
       } else {
@@ -306,21 +307,10 @@ export default function socketHandler(io: Server) {
         }
       });
 
-      socket.on('audio message', (audioBlob, callback) => {
+      socket.on('audio message', (audioBlob, chatID, callback) => {
         const buffer = Buffer.from(audioBlob);
-        saveAudioFile(buffer, callback);
+        sendAudioFile(buffer, userID, chatID, connectedUsers, io, callback);
       })
-
-      socket.on('get audio message', (filename: string, callback: (response: { success: boolean; message: string; data?: ArrayBuffer }) => void) => {
-    console.log(`Received request to get audio file: ${filename}`);
-    getAudioFile(filename, (result) => {
-      if (result.success && result.data) {
-        callback({ success: true, message: 'Audio file retrieved successfully', data: result.data.buffer });
-      } else {
-        callback({ success: false, message: result.message });
-      }
-    });
-  });
 
       // Get Messages
       socket.on('get messages', async (chatID, page, newMessages, callback) => {

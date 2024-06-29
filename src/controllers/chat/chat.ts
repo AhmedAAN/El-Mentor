@@ -41,13 +41,22 @@ export async function getNotifications(request: Request, response: Response) {
 
     const receiverId = new ObjectId(ID)
 
-    const notifications = await Notifications.find({ receiverId: receiverId });
+    const notifications = await Notifications.findOne({ receiverId: receiverId });
       if (!notifications) {
         throw new Error('Notifications not found');
     };
     
     response.status(200).send(notifications);
+
+    Notifications.updateOne(
+        { receiverId: receiverId },
+        {
+          $push: { old: { $each: notifications.new } },
+          $set: { new: [] }
+        }
+      );
   } catch (err) {
+    console.log(err)
     response.status(400).send(err);
   }
 }
