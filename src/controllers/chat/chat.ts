@@ -41,7 +41,7 @@ export async function getNotifications(request: Request, response: Response) {
 
     const receiverId = new ObjectId(ID)
 
-    const notifications = await Notifications.find({ receiverId: receiverId });
+    const notifications = await Notifications.find({ receiverId: receiverId }).toArray();
       if (!notifications) {
         throw new Error('Notifications not found');
     };

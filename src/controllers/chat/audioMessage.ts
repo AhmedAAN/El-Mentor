@@ -76,7 +76,7 @@ export const sendAudioFile = async (audioBlob: Buffer, userID: string, chatID: s
 
     const lastMessage = {
       sender: user_id,
-      audio: "audio message"
+      text: "audio message"
     }
 
     const messagePacket = {
