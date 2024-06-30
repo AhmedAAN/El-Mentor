@@ -10,7 +10,6 @@ export async function notify(request: Request, response: Response) {
   
   response.status(200).send(notifyReturn);
 }
-
 export function createRoom(request: Request, response: Response) {
   const roomId = handler.createRoom();
   
